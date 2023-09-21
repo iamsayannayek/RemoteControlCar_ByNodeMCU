@@ -1,176 +1,151 @@
-#define ENA   14          // Enable/speed motors Right        GPIO14(D5)
-#define ENB   12          // Enable/speed motors Left         GPIO12(D6)
-#define IN_1  15          // L298N in1 motors Right           GPIO15(D8)
-#define IN_2  13          // L298N in2 motors Right           GPIO13(D7)
-#define IN_3  2           // L298N in3 motors Left            GPIO2(D4)
-#define IN_4  0           // L298N in4 motors Left            GPIO0(D3)
-
+// Include necessary libraries
+#define BLYNK_PRINT Serial
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h> 
-#include <ESP8266WebServer.h>
+#include <BlynkSimpleEsp8266.h>
+#include <Servo.h>
 
-String command;             //String to store app command state.
-int speedCar = 800;         // 400 - 1023.
-int speed_Coeff = 3;
+// Create a servo object
+Servo myservo;
 
-const char* ssid = "NodeMCU Car";
-ESP8266WebServer server(80);
+// Define servo positions for turning angles
+int s_right = 10;
+int s_left = 170;
+int s_straight = 90;
 
+// Define motor pins
+#define ENA D0
+#define IN1 D1
+#define IN2 D2
+#define IN3 D3
+#define IN4 D4
+#define ENB D5
+
+// Define variables for controlling the smart car
+bool forward = false;
+bool backward = false;
+bool left = false;
+bool right = false;
+int Speed;
+
+// Blynk authentication token, WiFi credentials
+char auth[] = "T-SeTh75H9JA0gC8ZWfeURBpyg9gfoKr"; // Replace with your Blynk application auth token
+char ssid[] = "Sayan Nayek"; // Replace with your WiFi name
+char pass[] = "Sayan@2002"; // Replace with your WiFi password
+
+// Setup function, runs once at the beginning
 void setup() {
- 
- pinMode(ENA, OUTPUT);
- pinMode(ENB, OUTPUT);  
- pinMode(IN_1, OUTPUT);
- pinMode(IN_2, OUTPUT);
- pinMode(IN_3, OUTPUT);
- pinMode(IN_4, OUTPUT); 
+  Serial.begin(9600);
   
-  Serial.begin(115200);
+  // Attach the servo to pin D7
+  myservo.attach(D7);
   
-// Connecting WiFi
-
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid);
-
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
+  // Set motor pins as outputs
+  pinMode(ENA, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  pinMode(ENB, OUTPUT);
  
- // Starting WEB-server 
-     server.on ( "/", HTTP_handleRoot );
-     server.onNotFound ( HTTP_handleRoot );
-     server.begin();    
+  // Initialize Blynk with authentication and WiFi details
+  Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
 }
 
-void goAhead(){ 
+// Blynk callback for controlling forward motion
+BLYNK_WRITE(V0) {
+  forward = param.asInt();
+}
 
-      digitalWrite(IN_1, LOW);
-      digitalWrite(IN_2, HIGH);
-      analogWrite(ENA, speedCar);
+// Blynk callback for controlling backward motion
+BLYNK_WRITE(V1) {
+  backward = param.asInt();
+}
 
-      digitalWrite(IN_3, LOW);
-      digitalWrite(IN_4, HIGH);
-      analogWrite(ENB, speedCar);
+// Blynk callback for controlling left turn
+BLYNK_WRITE(V2) {
+  left = param.asInt();
+}
+
+// Blynk callback for controlling right turn
+BLYNK_WRITE(V3) {
+  right = param.asInt();
+}
+
+// Blynk callback for controlling speed
+BLYNK_WRITE(V4) {
+  Speed = param.asInt();
+}
+
+// Function to control the smart car based on Blynk input
+void smartcar() {
+  if (forward) {
+    carforward();
+    Serial.println("carforward");
+  } else if (backward) {
+    carbackward();
+    Serial.println("carbackward");
+  } else if (left) {
+    carturnleft();
+    Serial.println("carfleft");
+  } else if (right) {
+    carturnright();
+    Serial.println("carright");
+  } else {
+    carStop();
+    Serial.println("carstop");
   }
+}
 
-void goBack(){ 
-
-      digitalWrite(IN_1, HIGH);
-      digitalWrite(IN_2, LOW);
-      analogWrite(ENA, speedCar);
-
-      digitalWrite(IN_3, HIGH);
-      digitalWrite(IN_4, LOW);
-      analogWrite(ENB, speedCar);
-  }
-
-void goRight(){ 
-
-      digitalWrite(IN_1, HIGH);
-      digitalWrite(IN_2, LOW);
-      analogWrite(ENA, speedCar);
-
-      digitalWrite(IN_3, LOW);
-      digitalWrite(IN_4, HIGH);
-      analogWrite(ENB, speedCar);
-  }
-
-void goLeft(){
-
-      digitalWrite(IN_1, LOW);
-      digitalWrite(IN_2, HIGH);
-      analogWrite(ENA, speedCar);
-
-      digitalWrite(IN_3, HIGH);
-      digitalWrite(IN_4, LOW);
-      analogWrite(ENB, speedCar);
-  }
-
-void goAheadRight(){
-      
-      digitalWrite(IN_1, LOW);
-      digitalWrite(IN_2, HIGH);
-      analogWrite(ENA, speedCar/speed_Coeff);
- 
-      digitalWrite(IN_3, LOW);
-      digitalWrite(IN_4, HIGH);
-      analogWrite(ENB, speedCar);
-   }
-
-void goAheadLeft(){
-      
-      digitalWrite(IN_1, LOW);
-      digitalWrite(IN_2, HIGH);
-      analogWrite(ENA, speedCar);
-
-      digitalWrite(IN_3, LOW);
-      digitalWrite(IN_4, HIGH);
-      analogWrite(ENB, speedCar/speed_Coeff);
-  }
-
-void goBackRight(){ 
-
-      digitalWrite(IN_1, HIGH);
-      digitalWrite(IN_2, LOW);
-      analogWrite(ENA, speedCar/speed_Coeff);
-
-      digitalWrite(IN_3, HIGH);
-      digitalWrite(IN_4, LOW);
-      analogWrite(ENB, speedCar);
-  }
-
-void goBackLeft(){ 
-
-      digitalWrite(IN_1, HIGH);
-      digitalWrite(IN_2, LOW);
-      analogWrite(ENA, speedCar);
-
-      digitalWrite(IN_3, HIGH);
-      digitalWrite(IN_4, LOW);
-      analogWrite(ENB, speedCar/speed_Coeff);
-  }
-
-void stopRobot(){  
-
-      digitalWrite(IN_1, LOW);
-      digitalWrite(IN_2, LOW);
-      analogWrite(ENA, speedCar);
-
-      digitalWrite(IN_3, LOW);
-      digitalWrite(IN_4, LOW);
-      analogWrite(ENB, speedCar);
- }
-
+// Main loop
 void loop() {
-    server.handleClient();
-    
-      command = server.arg("State");
-      if (command == "F") goAhead();
-      else if (command == "B") goBack();
-      else if (command == "L") goLeft();
-      else if (command == "R") goRight();
-      else if (command == "I") goAheadRight();
-      else if (command == "G") goAheadLeft();
-      else if (command == "J") goBackRight();
-      else if (command == "H") goBackLeft();
-      else if (command == "0") speedCar = 400;
-      else if (command == "1") speedCar = 470;
-      else if (command == "2") speedCar = 540;
-      else if (command == "3") speedCar = 610;
-      else if (command == "4") speedCar = 680;
-      else if (command == "5") speedCar = 750;
-      else if (command == "6") speedCar = 820;
-      else if (command == "7") speedCar = 890;
-      else if (command == "8") speedCar = 960;
-      else if (command == "9") speedCar = 1023;
-      else if (command == "S") stopRobot();
+  Blynk.run();
+  smartcar();
 }
 
-void HTTP_handleRoot(void) {
+// Function to move the car forward
+void carforward() {
+  analogWrite(ENA, Speed);
+  analogWrite(ENB, Speed);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
 
-if( server.hasArg("State") ){
-       Serial.println(server.arg("State"));
-  }
-  server.send ( 200, "text/html", "" );
-  delay(1);
+// Function to move the car backward
+void carbackward() {
+  analogWrite(ENA, Speed);
+  analogWrite(ENB, Speed);
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+}
+
+// Function to turn the car left
+void carturnleft() {
+  myservo.write(s_left);
+  Serial.print("Set angle to: ");
+  Serial.println(s_left);
+  delay(1000);
+  myservo.write(s_straight); // Reset to straight position
+  delay(500);
+}
+
+// Function to turn the car right
+void carturnright() {
+  myservo.write(s_right);
+  Serial.print("Set angle to: ");
+  Serial.println(s_right);
+  delay(1000);
+  myservo.write(s_straight); // Reset to straight position
+  delay(500);
+}
+
+// Function to stop the car
+void carStop() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
 }
