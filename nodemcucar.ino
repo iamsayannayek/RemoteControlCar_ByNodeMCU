@@ -28,9 +28,9 @@ bool right = false;
 int Speed;
 
 // Blynk authentication token, WiFi credentials
-char auth[] = "T-SeTh75H9JA0gC8ZWfeURBpyg9gfoKr"; // Replace with your Blynk application auth token
-char ssid[] = "Sayan Nayek"; // Replace with your WiFi name
-char pass[] = "Sayan@2002"; // Replace with your WiFi password
+char auth[] = " "; // Replace with your Blynk application auth token
+char ssid[] = " "; // Replace with your WiFi name
+char pass[] = " "; // Replace with your WiFi password
 
 // Setup function, runs once at the beginning
 void setup() {
